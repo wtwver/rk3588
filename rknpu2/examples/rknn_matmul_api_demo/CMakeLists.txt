@@ -13,7 +13,7 @@ set(RKNN_API_PATH ${CMAKE_SOURCE_DIR}/../../runtime//${CMAKE_SYSTEM_NAME}/librkn
 if(CMAKE_SYSTEM_NAME STREQUAL "Android")
   set(RKNN_RT_LIB ${RKNN_API_PATH}/${CMAKE_ANDROID_ARCH_ABI}/librknnrt.so)
 else()
-  if(CMAKE_C_COMPILER MATCHES "aarch64")
+  if (CMAKE_SYSTEM_PROCESSOR MATCHES "aarch64|arm64")
     set(LIB_ARCH aarch64)
   else()
     set(LIB_ARCH armhf)

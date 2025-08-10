@@ -63,6 +63,7 @@ namespace rknpu2
                         {
                             int4 = int4 & 0xf;
                         }
+                        // Original low-nibble-first: even -> low nibble, odd -> high nibble
                         if (output_index % 2 == 0)
                         {
                             dst[output_index / 2] = int4;
@@ -294,14 +295,17 @@ namespace rknpu2
                 int32_t output_idx = (n * K + k) / 2;
                 int32_t output_offset = (n * K + k) % 2;
 
+                // Original low-nibble-first storage: even index uses low nibble
                 uint8_t value = (input[input_idx] >> (4 * input_offset)) & 0xF;
 
                 if (output_offset == 0)
                 {
+                    // write to low nibble
                     output[output_idx] = (output[output_idx] & 0xF0) | value;
                 }
                 else
                 {
+                    // write to high nibble
                     output[output_idx] = (output[output_idx] & 0x0F) | (value << 4);
                 }
             }
