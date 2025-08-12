@@ -1,0 +1,710 @@
+RKNN API For RKNPUUserGuide
+
+1
+www.rock-chips.com Classification Level: Top Secret( ) Secret( ) Internal( ) Public(√)
+RKNN API For RKNPUUserGuide(Technology Department, Graphic Compute PlatformCenter)Mark:
+[ ] Changing
+[√] Released
+Version: 1.2.0
+Author: HPC/NPU Team
+Completed Date: 14/Jan/2022
+Reviewer: Vincent
+Reviewed Date: 14/Jan/2022
+瑞芯微电子股份有限公司Rockchip Electronics Co., Ltd. (Copyright Reserved)
+2
+www.rock-chips.com Revision History
+Version Modifier Date Modify Description Reviewerv0.6.0 HPC Team 2/Mar/2021 Initial version Vincent
+v0.7.0 HPC Team 22/Apr/2021
+Remove description of swapping input
+data channels
+Vincent
+v1.0.0 HPC Team 30/Apr/2021 Release version Vincent
+v1.1.0 HPC Team 13/Aug/2021
+1. Add rknn_tensor_mem_flags
+2. Add query commands for input/output
+Tensor native attributes
+3. Add the memory layout of NC1HWC2
+Vincent
+v1.2.0b1 NPU Team 07/Jan/2022
+1. Add RK3588/RK3588s pla
+2. Add rknn_set_core_mask interface
+3. Add rknn_dump_context interface
+4. Add details for input and output API
+Vincent
+V1.2.0 HPC Team 14/Jan/2022
+1. Add the Glossary
+2. Add the NPU SDK guide and building
+and compiling instruction
+3. Add the section of how to do debugging
+4. Add the description of C2 in the section
+NATIVE_LAYOUT
+Vincent
+3
+www.rock-chips.com Table of Contents
+1 OVERVIEW......................................................................................................................................................62 SUPPORTED HARDWARE PLATFORMS..................................................................................................63 GLOSSARY.......................................................................................................................................................64 INSTRUCTIONS.............................................................................................................................................. 74.1 RKNN SDK DEVELOPMENT PROCESS.........................................................................................................74.2 RKNN LINUX PLATFORM DEVELOPMENT INSTRUCTIONS........................................................................... 74.2.1 RKNN API Library For Linux............................................................................................................. 74.2.2 Example Usage.....................................................................................................................................74.3 RKNN ANDROID PLATFORM DEVELOPMENT INSTRUCTIONS.......................................................................84.3.1 RKNN API Library For Android..........................................................................................................84.3.2 Example Usage.....................................................................................................................................94.4 RKNN C API............................................................................................................................................... 94.4.1 API Process Description.......................................................................................................................94.4.1.1 API internal processing flow......................................................................................................................... 154.4.1.2 Quantification and Dequantization............................................................................................................... 164.4.2 API Reference.....................................................................................................................................174.4.2.1 rknn_init.........................................................................................................................................................174.4.2.2 rknn_set_core_mask...................................................................................................................................... 184.4.2.3 rknn_dup_context.......................................................................................................................................... 184.4.2.4 rknn_destroy.................................................................................................................................................. 194.4.2.5 rknn_query.....................................................................................................................................................204.4.2.6 rknn_inputs_set..............................................................................................................................................254.4.2.7 rknn_run........................................................................................................................................................ 264.4.2.8 rknn_wait....................................................................................................................................................... 26
+4
+www.rock-chips.com
+4.4.2.9 rknn_outputs_get........................................................................................................................................... 264.4.2.10 rknn_outputs_release...................................................................................................................................274.4.2.11 rknn_create_mem_from_mb_blk..................................................................................................................284.4.2.12 rknn_create_mem_from_phys......................................................................................................................284.4.2.13 rknn_create_mem_from_fd.......................................................................................................................... 284.4.2.14 rknn_create_mem.........................................................................................................................................294.4.2.15 rknn_destory_mem.......................................................................................................................................294.4.2.16 rknn_set_weight_mem................................................................................................................................. 304.4.2.17 rknn_set_internal_mem............................................................................................................................... 304.4.2.18 rknn_set_io_mem.........................................................................................................................................314.4.3 RKNN Definition of Data Structcture................................................................................................314.4.3.1 rknn_sdk_version...........................................................................................................................................314.4.3.2 rknn_input_output_num.................................................................................................................................324.4.3.3 rknn_tensor_attr............................................................................................................................................ 324.4.3.4 rknn_perf_detail............................................................................................................................................ 334.4.3.5 rknn_perf_run................................................................................................................................................344.4.3.6 rknn_mem_size.............................................................................................................................................. 344.4.3.7 rknn_tensor_mem.......................................................................................................................................... 344.4.3.8 rknn_input......................................................................................................................................................354.4.3.9 rknn_output....................................................................................................................................................354.4.3.10 rknn_init_extend.......................................................................................................................................... 354.4.3.11 rknn_run_extend.......................................................................................................................................... 364.4.3.12 rknn_output_extend..................................................................................................................................... 364.4.3.13 rknn_custom_string..................................................................................................................................... 364.4.4 Instruction of API Input and Output...................................................................................................374.4.4.1 General Input and Output of API (Without Zero Copy)................................................................................ 37
+5
+www.rock-chips.com
+4.4.4.2 Input and Output with Zero Copy of API.......................................................................................................384.4.4.3 Instruction of looking up NATIVE_LAYOUT parameter...............................................................................394.4.5 RKNN Error Code..............................................................................................................................404.5 NPU SDK INSTRUCTION............................................................................................................................ 414.5.1 RKNN Error Code..............................................................................................................................414.5.2 Compiling and Building..................................................................................................................... 424.6 DEBUGGING................................................................................................................................................434.6.1 Log level............................................................................................................................................434.6.2 Profiling............................................................................................................................................444.5.2.1 Checking the environment on the development board...................................................................................44
+6
+www.rock-chips.com 1 Overview
+RKNN SDK provides programming interfaces for RK3566/RK3568 chip platforms withNPU, which can help users deploy RKNN models exported from RKNN-Toolkit2 and acceleratetheimplementation of AI applications. 2 Supported Hardware Platforms
+This document applies to the following hardware platforms:
+RK3566, RK3568, RK3588, RK3588S
+Note: RK356X is used to indicate RK3566/RK3568 in this document. RK3588 is usedtoindicate RK3588/RK3588S in this document. 3 Glossary
+RKNN Model: It is the binary file running on the RKNPU, with the suffix .rknn. Inference with board: It refer to use RKNN-Toolkit2 API interface to run the model. Actually, the model is running on the NPU on the development board. HIDL: It denotes interface description language (IDL) to specify the interface betweenanandroid HAL and its users. CTS: It is the Compatibility Test Suite from android automatic testing kit. VTS: It is the Vendor Test Suite from android automatic testing kit. DRM: It is the Direct Rendering Manager, a main stream of graph displaying frameworkonlinux.tensor: A multi-dimensional array of data. fd: It is the file descriptor for representing the buffer. NATIVE_LAYOUT: It refers to the native layout of NPU. In other words, it has the best
+performance when NPU is processing data with this memory layout.
+7
+www.rock-chips.com
+i8 model: A quantized RKNN model which running by 8-bit signed integer data. fp16 model: A non-quantized RKNN model which running by 16-bit half-float data. 4 Instructions
+4.1 RKNN SDK Development Process
+Before using the RKNN SDK, users first need to utilize the RKNN-Toolkit2 to convert the user'smodel to the RKNN model. After getting the RKNN model file, users can choose using C interface to developtheapplication. The following chapters will explain how to develop applications based on the RKNNSDK on RK356X/RK3588 platform. 4.2 RKNN Linux Platform Development Instructions
+4.2.1 RKNN API Library For Linux
+For the RK3566/ RK3568, the SDK library file is librknnrt.so under the directoryof
+<sdk>/rknpu2/ runtime. 4.2.2 Example Usage
+The SDK provides MobileNet image classification, SSD object detection, YOLOv5 object
+detection demos. These demos are the reference for developers to develop applications based ontheRKNN SDK. The demo is located in the path of <sdk>/rknpu2/examples. Let's take RK356Xrknn_mobilenet_demo as an example to explain how to get started quickly. 1) Compile Demo Source Code
+cd examples/rknn_mobilenet_demo
+# set GCC_COMPILER in build-linux.sh to the correct compiler path
+./build-linux_RK356X.sh
+2) Deploy to the RK356X device
+8
+www.rock-chips.com
+adb push install/rknn_mobilenet_demo_Linux /userdata/
+3) Run Demo
+adb shell
+cd /userdata/rknn_mobilenet_demo_Linux/
+export LD_LIBRARY_PATH=./lib
+./rknn_mobilenet_demo model/RK356X/mobilenet_v1.rknn model/dog_224x224.jpg
+4.3 RKNN Android Platform Development Instructions
+4.3.1 RKNN API Library For Android
+There are two ways to call the RKNN API on the Android platform
+1) The application can link librknnrt.so directly
+2) Application link to librknn_api_android.so implemented by HIDL on Android platformFor Android devices that need to pass the CTS/VTS test, you can use the RKNNAPI basedonthe Android platform HIDL implementation. If the device does not need to pass the CTS/VTStest, it
+is recommended to directly link and use librknnrt.so as this way can shorten the callingand linkingprocessing of each interface to offer better performance. The code for the RKNN API implemented using Android HIDL is located inthevendor/rockchip/hardware/interfaces/neuralnetworks directory of the RK356X Android systemSDK. When the Android system is compiled, some NPU-related libraries will be generated(for
+applications only need to link librknn_api_android.so), as shown below:
+/system/lib/librknn_api_android.so
+/system/lib/librknnhal_bridge.rockchip.so
+/system/lib64/librknn_api_android.so
+/system/lib64/librknnhal_bridge.rockchip.so
+/vendor/lib64/rockchip.hardware.neuralnetworks@1.0.so
+/vendor/lib64/rockchip.hardware.neuralnetworks@1.0-adapter-helper.so
+/vendor/lib64/librknnrt.so
+/vendor/lib64/hw/rockchip.hardware.neuralnetworks@1.0-impl.so
+Alternatively, user can use the following command to recompile and generate the above library
+9
+www.rock-chips.com
+separately. mmm vendor/rockchip/hardware/interfaces/neuralnetworks/ -j8
+4.3.2 Example Usage
+The SDK currently provides examples of MobileNet image classification, SSDobject detectionand YOLOv5 object detection. The demo code is located in the <sdk>/rknpu2/examples directory. Users can use NDK to compile the demo executed in the Android command line. Let's take RK356Xrknn_mobilenet_demo as an example to explain how to use this demo on the Android platform:
+1) Compile Demo Source Code
+cd examples/rknn_mobilenet_demo
+#set ANDROID_NDK_PATH under build-android.sh to the correct NDK path
+./build-android_RK356X.sh
+2) Deploy to the RK3566 device
+adb push install/rknn_mobilenet_demo_Android /data/
+3) Run Demo
+adb shell
+cd /data/rknn_mobilenet_demo_Andorid/
+export LD_LIBRARY_PATH=./lib
+./rknn_mobilenet_demo model/RK356X/mobilenet_v1.rknn model/dog_224x224.jpg
+Note: The above demo uses the librknnrt.so by default. For developers who want touselibrknn_api_android.so, replacing the librknnrt.so with the librknn_api_android.so on the correspondingCMakeList.txt of that demo and compiling it again using above steps. 4.4 RKNN C API
+4.4.1 API Process Description
+At present, there are two groups of APIs that can be used on RK356X, namely the general API
+10
+www.rock-chips.com
+interface and the API interface for the zero-copy process. The main difference between the twosetsof APIs is that each time the general interface updates the frame data, the data allocated externallyneeds to be copied to the input memory of the NPU during runtime, while the interface of the zero- copy process uses pre-allocated memory directly (including memory created by NPUor other frame, such as DRM), reducing the cost of copying memory. When the user input data has only a virtual
+address, only the common API interface can be used; when the user input data has a physical addressor fd, both sets of interfaces can be used. For the general API interface, the rknn_input structure is initialized at first. The frame dataiscontained in the structure. The input of models is set by using rknn_inputs_set function. After thecompletion of inference, the inference output can be acquired by the rknn_outputs_get functionandperformed for post-processing. The frame data must be updated before inference. The process of
+general API call is shown in Figure 3-1, and user behavior is indicated by the process in yellowfont.
+11
+www.rock-chips.com
+Figure 3-1: General process of calling general interface of API
+For the zero-copy interface of API , after allocating memory, the rknn_tensor_memstructureisinitialized by the memory information from allocated memory. Creating this structure beforetheinference is necessary. And the memory information can be retrieved by reading this structure after
+inference. According to whether the user needs to allocate the modular memory inside model
+(input/output/weights/intermediate result) and the differences of memory representation(filedescriptor/physical address, etc.), there are the following three typical zero-copy calling processes, asshown in Figure 3-2, Figure 3-3 and Figure 3-4 respectively. The red font indicates the interfaceand
+12
+www.rock-chips.com
+data structure specially added for zero copy and the italic indicates the data structure passed betweeninterface calls. 1) Input/Output memory is allocated by API during runtime
+Figure 3-2: Process of zero-copy API interface call (input/output allocated internally)
+As shown in Figure 3-2, the input/output memory information structure created bytherknn_create_mem interface includes the file descriptor and physical addresses. The RGAinterfaceutilizes the memory information allocated by the NPU during runtime. In the above figure, preprocess_rga represents the RGA interface, and stream_fd represents the input source buffer
+13
+www.rock-chips.com
+represented by fd in RGA, postprocess_cpu represents the CPU implementation of post processing. 2) Input/output memory is allocated externally
+Figure 3-3: The process zero-copy API interface call (input/output allocated externally)
+As shown Figure 3-3, flush_cache indicates that the user needs to call the interface associatedwith the memory type to flush the output buffer. 3) Input/output/weights/internal tensor memory is allocated externally
+14
+www.rock-chips.com
+Figure 3-4: The process of zero-copy API interface call (input/output/weights/internal tensor
+allocated externally)
+15
+www.rock-chips.com
+4.4.1.1 API internal processing flow
+When inferring the RKNN model, the original data need to go through three major processes:
+input processing, running model on NPU, and output processing. Currently, according to different
+model input formats and quantization methods, there are two different processes inside the general
+API interface. 1) int8 quantized model and the number of input channels is 1 or 3 or 4
+The processing flow of the original data is shown in Figure 3-5. Assuming that the input is a3- channel model, the user must ensure that the color sequence of the R, G, and B channels is consistent
+with the training model. Normalization, quantization, and model inference are all running ontheNPU. The output data layout format and dequantization process is running on the CPU.
+Figure 3-5: Optimized data processing flow
+2) int8 quantized model and non-quantized model when number of input channels is 2or >= 4
+The flow of data processing is shown in Figure 3-6. The normalization, quantification, datalayout format conversion, and dequantization of data are all running on the CPUexcept for theinference of the model which runs on the NPU. In this scenario, the processing efficiency of the input
+data flow will be lower than the optimized one in Figure 3-5.
+Figure 3-6: Common data processing flow
+For the zero-copy API, there is only one processing flow for the internal process of the API, asshown in Figure 3-5. Conditions for using zero copy are listed below:
+1. The number of input channels is 1, 3 or 4.
+16
+www.rock-chips.com
+2. The input width is 8 pixel aligned. 3. Int8 asymmetric quantized model. 4.4.1.2 Quantification and Dequantization
+The quantization method, quantization data type and quantization parameters usedinquantization and dequantization can be queried through the rknn_query interface. At the moment, the NPU of RK3566/RK3568 only supports asymmetric quantization, anddoesnot support dynamic fixed-point quantization. The combination of data type and quantizationmethod includes:
+ int8 (asymmetric quantization)
+ int16 (asymmetric quantization, not yet implemented)
+ float16
+Generally speaking, the normalized data is stored in 32-bit floating point data. For conversionof
+32-bit floating point data to 16-bit floating point data, it is better for referring to the IEEE-754standard. The following describes the quantization process, assuming that the normalized32-bit
+floating point data is D. 1) float32 to int8(asymmetric quantization)
+Assuming that the asymmetric quantization parameter of the input tensor is Sq
+, ZP, the dataquantization process is expressed as the following formula:
+D round(clamp(D/ S ZP,-128,127)) q  q 
+In the above formula, clamp means to limit the value to a certain range. round means roundingprocessing. 2) float32 to int16(asymmetric quantization)
+Assuming that the asymmetric quantization parameter of the input tensor is Sq
+, ZP, the dataquantization process is expressed as the following formula:
+17
+www.rock-chips.com D round(clamp(D/ S ZP,-32768,32767)) q  q 
+The dequantization process is the inverse process of quantization, and the dequantizationformula can be deduced according to the above quantization formula, which will not be repeatedhere. 4.4.2 API Reference
+4.4.2.1 rknn_init
+The rknn_init will do the following things, such as, creating the rknn_context object, loadingtheRKNN model, and performing specific initialization behaviors according to the flagandrknn_init_extend structure. API rknn_init
+Description Initialize rknn
+Parameters rknn_context *context: The pointer of rknn_context object. After the function is called, theobejct of the context will be returned with the information. void *model: Binary data for the RKNN model or the path of RKNN model. uint32_t size: When model is stored in binary data, it indicates the size of the model. Thesize is 0 when model is given as the path. uint32_t flag: A specific initialization flag. Now, it only has the following flags. RKNN_FLAG_COLLECT_PERF_MASK: For querying the time it took to run eachparticular layer during runtime. RKNN_FLAG_MEM_ALLOC_OUTSIDE: Used to indicate that model inputs, outputs, weights, and intermediate tensor memory are all allocated by the user. rknn_init_extend: The extended information during specific initialization. It is disabledat
+the moment, which indicates this must be passed by the NULL. Return int: Error code (See RKNN Error Code). Sample Code:
+18
+www.rock-chips.com
+rknn_context ctx;
+int ret = rknn_init(&ctx, model_data, model_data_size, 0, NULL);
+4.4.2.2 rknn_set_core_mask
+This function sets the specific cores running inside the NPU. For now, it only works at theRK3588. API rknn_set_core_mask
+Description Set the cores for the NPU. Parameters rknn_context context: The object of rknn context. rknn_core_mask core_mask: The specification of NPU core setting. It has the followingchoices:
+RKNN_NPU_CORE_AUTO : Referring to automatic mode, meaning that it will select
+the idle core inside the NPU. RKNN_NPU_CORE_0 : Running on the NPU0 core
+RKNN_NPU_CORE_1: Runing on the NPU1 core
+RKNN_NPU_CORE_2: Runing on the NPU2 core
+RKNN_NPU_CORE_0_1: Running on both NPU0 and NPU1 core simultaneously. (Unavailable currently)
+RKNN_NPU_CORE_0_1_2: Running on both NPU0, NPU1 and NPU2 simultaneously. (Unavailable currently)
+Return int: Error code (See RKNN Error Code). Sample Code:
+rknn_context ctx;
+rknn_core_mask core_mask = RKNN_NPU_CORE_0;
+int ret = rknn_set_core_mask(ctx, core_mask);
+4.4.2.3 rknn_dup_context
+The rknn_dup_context creates a new context object referring to the same model. The newcontext is useful in the condition where the weight of the model need to be reused during executingthe same model on the multi-threading. (Unavailable for RK3588)
+19
+www.rock-chips.com API rknn_dup_context
+Description Creates a new context for the same model, to reuse the weight of the model. Parameters rknn_context *context_in: The pointer of rknn_context object. After the function is called, the obejct of the input context will be initialized. rknn_context *context_out: The pointer of a rknn_context output object where informationabout this new created object is returned. Return int: Error code (See RKNN Error Code). Sample Code:
+rknn_context ctx_in;
+rknn_context ctx_out;
+int ret = rknn_dup_context(&ctx_in, &ctx_out);
+4.4.2.4 rknn_destroy
+This function is used to release the rknn_context and its related resources. API rknn_destroy
+Description Destroy the rknn_context object and its related resources. Parameters rknn_context context: The rknn_context object that is going to be destroyed. Return int: Error code (See RKNN Error Code). Sample Code:
+rknn_context ctx;
+int ret = rknn_destroy(ctx);
+20
+www.rock-chips.com
+4.4.2.5 rknn_query
+The rknn_query function can query the information of models and SDK, including model input
+and output information, layer-by-layer running time, total model inference time, SDKversion, memory usage information, user-defined strings and other information. API rknn_query
+Description Query the information about the model and the SDK. Parameters rknn_context context: The object of rknn_contex. rknn_query_cmd cmd: The query command. void* info: The structure object that stores the result of the query. uint32_t size: The size of the info structure object. Return int: Error code (See RKNN Error Code). Currently, the SDK supports following query commands:
+21
+www.rock-chips.com Query command Return result structure Function
+RKNN_QUERY_IN_OUT_NUM rknn_input_output_num Query the number of input and output
+Tensors. RKNN_QUERY_INPUT_ATTR rknn_tensor_attr When using the general API
+interface, query the input Tensor
+attribute. RKNN_QUERY_OUTPUT_ATTR rknn_tensor_attr When using the general API
+interface, query the output Tensor
+attribute. RKNN_QUERY_PERF_DETAIL rknn_perf_detail Query the running time of eachlayer
+of the network. It only works whenthe flag of
+RKNN_FLAG_COLLECT_PERF_MASK is set via using the rknn_init. RKNN_QUERY_PERF_RUN rknn_perf_run Query the total time of inference(excluding setting input/output) inmicroseconds . RKNN_QUERY_SDK_VERSION rknn_sdk_version Query the SDK version. RKNN_QUERY_MEM_SIZE rknn_mem_size Query the memory size allocatedtothe weights and internal tensors inthenetwork. RKNN_QUERY_CUSTOM_STRING rknn_custom_string Query the user-defined strings intheRKNN model. RKNN_QUERY_NATIVE_INPUT_A
+TTR
+rknn_tensor_attr When using the zero-copyAPI
+interface, it queries the native input
+Tensor attribute, which is the model
+input attribute directly read bytheNPU. RKNN_QUERY_NATIVE_OUTPUT
+_ATTR
+rknn_tensor_attr When using the zero-copyAPI
+interface, query the native output
+Tensor attribute, which is the model
+output attribute directly fromtheNPU. Next we will explain each query command in detail. 1） Query the SDK version
+The RKNN_QUERY_SDK_VERSION command can be used to query the version informationof
+22
+www.rock-chips.com
+the RKNN SDK. You need to create the rknn_sdk_version structure object first. Sample Code:
+rknn_sdk_version version;
+ret = rknn_query(ctx, RKNN_QUERY_SDK_VERSION, &version, sizeof(rknn_sdk_version));
+printf("sdk api version: %s\n", version.api_version);
+printf("driver version: %s\n", version.drv_version);
+2） Query the number of input and output Tensor
+The RKNN_QUERY_IN_OUT_NUM command can be used to query the number of model
+input and output Tensor. You need to create the rknn_input_output_num structure object first. Sample Code:
+rknn_input_output_num io_num;
+ret = rknn_query(ctx, RKNN_QUERY_IN_OUT_NUM, &io_num, sizeof(io_num));
+printf("model input num: %d, output num: %d\n", io_num.n_input, io_num.n_output);
+3） Query input Tensor attribute (for general API interface)
+The RKNN_QUERY_INPUT_ATTR command can be used to query the attribute of the model
+input Tensor. You need to create the rknn_tensor_attr structure object first. Sample Code:
+rknn_tensor_attr input_attrs[io_num.n_input];
+memset(input_attrs, 0, sizeof(input_attrs));
+for (int i = 0; i < io_num.n_input; i++) {
+input_attrs[i].index = i;
+ret = rknn_query(ctx, RKNN_QUERY_INPUT_ATTR, &(input_attrs[i]), sizeof(rknn_tensor_attr));
+}
+4） Query output Tensor attribute (for general API interface)
+The RKNN_QUERY_OUTPUT_ATTR command can be used to query the attribute of the model
+output Tensor. You need to create the rknn_tensor_attr structure object first. Sample Code:
+23
+www.rock-chips.com
+rknn_tensor_attr output_attrs[io_num.n_output];
+memset(output_attrs, 0, sizeof(output_attrs));
+for (int i = 0; i < io_num.n_output; i++) {
+output_attrs[i].index = i;
+ret = rknn_query(ctx, RKNN_QUERY_OUTPUT_ATTR, &(output_attrs[i]), sizeof(rknn_tensor_attr));
+}
+5） Query layer-by-layer inference time of model
+After the rknn_run interface is called, the RKNN_QUERY_PERF_DETAIL command canbeused to query the layer-by-layer inference time in microseconds. The premise of using this commandis that the flag parameter of the rknn_init interface needs to include theRKNN_FLAG_COLLECT_PERF_MASK flag. Sample Code:
+rknn_context ctx;
+int ret = rknn_init(&ctx, model_data, model_data_size, RKNN_FLAG_COLLECT_PERF_MASK, NULL);
+... ret = rknn_run(ctx,NULL);
+... rknn_perf_detail perf_detail;
+ret = rknn_query(ctx, RKNN_QUERY_PERF_DETAIL, &perf_detail, sizeof(perf_detail));
+6） Query total inference time of model
+After the rknn_run interface is called, the RKNN_QUERY_PERF_RUN command can be usedto query the inference time of the model (not including setting input/output) in microseconds. Sample Code:
+24
+www.rock-chips.com
+rknn_context ctx;
+int ret = rknn_init(&ctx, model_data, model_data_size, 0, NULL);
+... ret = rknn_run(ctx,NULL);
+... rknn_perf_run perf_run;
+ret = rknn_query(ctx, RKNN_QUERY_PERF_RUN, &perf_run, sizeof(perf_run));
+7） Query the memory allocation of the model
+After the rknn_init interface is called, when the user needs to allocate memory for network, theRKNN_QUERY_MEM_SIZE command can be used to query the weights of the model andtheinternal memory (excluding input and output) in the network. The requirement of usingthiscommand is that the flag parameter of the rknn_init interface needs to enable theRKNN_FLAG_MEM_ALLOC_OUTSIDE flag. Sample Code:
+rknn_context ctx;
+int ret = rknn_init(&ctx, model_data, model_data_size, RKNN_FLAG_MEM_ALLOC_OUTSIDE , NULL);
+rknn_mem_size mem_size;
+ret = rknn_query(ctx, RKNN_QUERY_MEM_SIZE, &mem_size, sizeof(mem_size));
+8） Query User-defined string in the model
+After the rknn_init interface is called, if the user has added custom strings when generatingtheRKNN model, the RKNN_QUERY_CUSTOM_STRING command can be used to retrieve user- defined strings. Sample Code:
+rknn_context ctx;
+int ret = rknn_init(&ctx, model_data, model_data_size, 0, NULL);
+rknn_custom_string custom_string;
+ret = rknn_query(ctx, RKNN_QUERY_CUSTOM_STRING, &custom_string, sizeof(custom_string));
+9） Query native input tensor attribute (for zero-copy API interface)
+25
+www.rock-chips.com
+The RKNN_QUERY_NATIVE_INPUT_ATTR command can be used to query the nativeattribute of the model input Tensor. You need to create the rknn_tensor_attr structure object first. Sample Code:
+rknn_tensor_attr input_attrs[io_num.n_input];
+memset(input_attrs, 0, sizeof(input_attrs));
+for (int i = 0; i < io_num.n_input; i++) {
+input_attrs[i].index = i;
+ret = rknn_query(ctx, RKNN_QUERY_NATIVE_INPUT_ATTR, &(input_attrs[i]), sizeof(rknn_tensor_attr));
+}
+10） Query native output tensor attribute (for zero-copy API interface)
+The RKNN_QUERY_NATIVE_OUTPUT_ATTR command can be used to query the nativeattribute of the model output Tensor. You need to create the rknn_tensor_attr structure object first. Sample Code:
+rknn_tensor_attr output_attrs[io_num.n_output];
+memset(output_attrs, 0, sizeof(output_attrs));
+for (int i = 0; i < io_num.n_output; i++) {
+output_attrs[i].index = i;
+ret = rknn_query(ctx, RKNN_QUERY_NATIVE_OUTPUT_ATTR, &(output_attrs[i]), sizeof(rknn_tensor_attr));
+}
+4.4.2.6 rknn_inputs_set
+The input data of the model can be set by the rknn_inputs_set function. This functioncansupport multiple inputs, each of which is a rknn_input structure object. The user needs to set theseobject field before passing in rknn_inputs_set function. API rknn_inputs_set
+Description Set the model input data. Parameter rknn_context context: The object of rknn_contex. uint32_t n_inputs: Number of inputs. rknn_input inputs[]: Array of rknn_input. Return int: Error code (See RKNN Error Code).
+26
+www.rock-chips.com
+Sample Code:
+rknn_input inputs[1];
+memset(inputs, 0, sizeof(inputs));
+inputs[0].index = 0;
+inputs[0].type = RKNN_TENSOR_UINT8;
+inputs[0].size = img_width*img_height*img_channels;
+inputs[0].fmt = RKNN_TENSOR_NHWC;
+inputs[0].buf = in_data;
+inputs[0].pass_through = 0;
+ret = rknn_inputs_set(ctx, 1, inputs);
+4.4.2.7 rknn_run
+The rknn_run function will perform a model inference. The input data need to be configuredbythe rknn_inputs_set function or zero-copy interface before rknn_run is called. API rknn_run
+Description Perform a model inference. Parameter rknn_context context: The object of rknn_contex. rknn_run_extend* extend: Reserved for extension. It is not used currently and acceptedNULL only. Return int: Error code (See RKNN Error Code). Sample Code:
+ret = rknn_run(ctx, NULL);
+4.4.2.8 rknn_wait
+This interface is used for non-blocking mode inference and has not been implemented yet. 4.4.2.9 rknn_outputs_get
+The rknn_outputs_get function can get the output data from the model. This function canget
+multiple output data, each of which is a rknn_output structure object that needs to be createdandinitialized in turn before the function is called.
+27
+www.rock-chips.com
+There are two ways to store buffers for output data:
+1) The user allocate and release buffers themselves. In this case, the rknn_output.is_preallocneeds to be set to 1, and the rknn_output.buf points to users’ allocated buffer;
+2) The other is allocated by rknn. At this time, the rknn_output .is_prealloc needs to be set to0. After the function is executed, rknn_output.buf will be created and store the output data. API rknn_outputs_get
+Description Get model inference output data. Parameter rknn_context context: The object of rknn_context. uint32_t n_outputs: Number of output. rknn_output outputs[]: Array of rknn_output. rknn_run_extend* extend: Reserved for extension, currently not used yet. AcceptingNULL only. Return int: Error code (See RKNN Error Code). Sample Code:
+rknn_output outputs[io_num.n_output];
+memset(outputs, 0, sizeof(outputs));
+for (int i = 0; i < io_num.n_output; i++) {
+outputs[i].index = i;
+outputs[i].is_prealloc = 0;
+outputs[i].want_float = 1;
+}
+ret = rknn_outputs_get(ctx, io_num.n_output, outputs, NULL);
+4.4.2.10 rknn_outputs_release
+The rknn_outputs_release function will release the relevant resources of the rknn_output object. API rknn_outputs_release
+Description Release the rknn_output object
+Parameter rknn_context context: rknn_context object
+uint32_t n_outputs: Number of output. rknn_output outputs[]: The array of rknn_output to be released. Return int: Error code (See RKNN Error Code). Sample Code:
+28
+www.rock-chips.com
+ret = rknn_outputs_release(ctx, io_num.n_output, outputs);
+4.4.2.11 rknn_create_mem_from_mb_blk
+It has not been implemented Currently. 4.4.2.12 rknn_create_mem_from_phys
+When the user wants to allocate memory for NPU, the rknn_create_mem_from_phys functioncan create a rknn_tensor_mem structure and return its pointer. This function will pass the physical
+address, virtual address and size, and the information related to the external memory totherknn_tensor_mem structure. API rknn_create_mem_from_phys
+Description Create rknn_tensor_mem structure and allocate memory through physical address
+Parameter rknn_context context: rknn_context object. uint64_t phys_addr: The physical address of buffer. void *virt_addr: The virtual address of buffer. uint32_t size: The size of buffer. Return rknn_tensor_mem*: The tensor memory information structure pointer. Sample Code:
+//suppose we have got buffer information as input_phys, input_virt and size
+rknn_tensor_mem* input_mems [1];
+input_mems[0] = rknn_create_mem_from_phys(ctx, input_phys, input_virt, size);
+4.4.2.13 rknn_create_mem_from_fd
+When the user wants to allocate for NPU, the rknn_create_mem_from_fd functionarknn_tensor_mem structure and return its pointer. This function filled with the file descriptor, logical
+address and size, and the information related to the external memory will be assigned totherknn_tensor_mem structure.
+29
+www.rock-chips.com API rknn_create_mem_from_fd
+Description
+Parameter
+Create rknn_tensor_mem structure and allocate memory through file descriptor
+rknn_context context: rknn_context object. int32_t fd: The file descriptor of buffer. void *virt_addr: The virtual address of buffer, which indicates the beginning of fd. uint32_t size: The size of buffer. int32_t of set: The offset corresponding for file descriptor and virtual address
+Return rknn_tensor_mem*: The tensor memory information structure pointer. Sample Code:
+//suppose we have got buffer information as input_fd, input_virt and size
+rknn_tensor_mem* input_mems [1];
+input_mems[0] = rknn_create_mem_from_fd(ctx, input_fd, input_virt, size, 0);
+4.4.2.14 rknn_create_mem
+When the user wants to allocate memory which can be used directly in the NPU, therknn_create_mem function can create a rknn_tensor_mem structure and get its pointer. This functionpasses in the memory size and initializes the rknn_tensor_mem structure at runtime. API rknn_create_mem
+Description Create rknn_tensor_mem structure internally and allocate memory during runtime
+Parameter rknn_context context: rknn_context object. uint32_t size: The size of buffer. Return rknn_tensor_mem*: The tensor memory information structure pointer. Sample Code:
+//suppose we have got buffer size
+rknn_tensor_mem* input_mems [1];
+input_mems[0] = rknn_create_mem(ctx, size);
+4.4.2.15 rknn_destory_mem
+The rknn_destory_mem function destroys the rknn_tensor_mem structure. However, the memoryallocated by the user needs to be released manually.
+30
+www.rock-chips.com API rknn_destory_mem
+Description Destroy rknn_tensor_mem structure
+Parameter rknn_context context: rknn_context object. rknn_tensor_mem*: The tensor memory information structure pointer. Return int: Error code (See RKNN Error Code). Sample Code:
+rknn_tensor_mem* input_mems [1];
+int ret = rknn_destroy_mem(ctx, input_mems[0]);
+4.4.2.16 rknn_set_weight_mem
+If the user has allocated memory for the network weights, after initializing the correspondingrknn_tensor_mem structure, the NPU can use the memory through the rknn_set_weight_memfunction. This function must be called before calling rknn_run. API rknn_set_weight_mem
+Description Set up the rknn_tensor_mem structure containing weights memory information
+Parameter rknn_context context: rknn_context object. rknn_tensor_mem*: The tensor memory information structure pointer. Return int: Error code (See RKNN Error Code). Sample Code:
+rknn_tensor_mem* weight_mems [1];
+int ret = rknn_set_weight_mem(ctx, weight_mems[0]);
+4.4.2.17 rknn_set_internal_mem
+If the user has allocated memory for the internal tensor in network, after initializingthecorresponding rknn_tensor_mem structure, the NPU can use the memory throughtherknn_set_internal_mem function. This function must be called before calling rknn_run.
+31
+www.rock-chips.com API rknn_set_internal_mem
+Description Set up the rknn_tensor_mem structure containing internal tensor memory informationinnetwork
+Parameter rknn_context context: rknn_context object. rknn_tensor_mem*: The pointer to the tensor memory information structure. Return int: Error code (See RKNN Error Code). Sample Code:
+rknn_tensor_mem* internal_tensor_mems [1];
+int ret = rknn_set_internal_mem(ctx, internal_tensor_mems[0]);
+4.4.2.18 rknn_set_io_mem
+If the user has allocated memory for the input/output tensor in network, after initializingthecorresponding rknn_tensor_mem structure, the NPU can use the memory throughtherknn_set_io_mem function. This function must be called before calling rknn_run. API rknn_set_io_mem
+Description Set up the rknn_tensor_mem structure containing input/output tensor memory informationin network
+Parameter rknn_context context: rknn_context object. rknn_tensor_mem*: The pointer to the tensor memory information structure . Return int: Error code (See RKNN Error Code). Sample Code:
+rknn_tensor_mem* io_tensor_mems [1];
+int ret = rknn_set_io_mem(ctx, io_tensor_mems[0]);
+4.4.3 RKNN Definition of Data Structcture
+4.4.3.1 rknn_sdk_version
+The structure rknn_sdk_version is used to indicate the version information of the RKNNSDK. The following table shows the definition:
+32
+www.rock-chips.com
+Field Type Meaning
+api_version char[] SDK API version information. drv_version char[] SDK driver version information. 4.4.3.2 rknn_input_output_num
+The structure rknn_input_output_num represents the number of input and output Tensor，Thefollowing table shows the definition:
+Field Type Meaning
+n_input uint32_t The number of input tensor
+n_output uint32_t The number of output tensor
+4.4.3.3 rknn_tensor_attr
+The structure rknn_tensor_attr represents the attribute of the model's Tensor. The followingtableshows the definition:
+Field Type Meaning
+index uint32_t Indicates the index position of the input and output
+Tensor. n_dims uint32_t The number of Tensor dimensions. dims uint32_t[] Values for each dimension. name char[] Tensor name. n_elems uint32_t The number of Tensor data elements. size uint32_t The memory size of Tensor data. fmt rknn_tensor_format The format of Tensor dimension, has the followingformat:
+RKNN_TENSOR_NCHWRKNN_TENSOR_NHWC
+RKNN_TENSOR_NC1HWC2
+type rknn_tensor_type Tensor data type, has the following data types:
+RKNN_TENSOR_FLOAT32
+RKNN_TENSOR_FLOAT16
+RKNN_TENSOR_INT8
+RKNN_TENSOR_UINT8
+RKNN_TENSOR_INT16
+RKNN_TENSOR_UINT16
+33
+www.rock-chips.com RKNN_TENSOR_INT32
+RKNN_TENSOR_INT64
+RKNN_TENSOR_BOOL
+qnt_type rknn_tensor_qnt_type Tensor Quantization Type, has the following types of
+quantization:
+RKNN_TENSOR_QNT_NONE: Not quantified;
+RKNN_TENSOR_QNT_DFP: Dynamic fixedpoint quantization;
+RKNN_TENSOR_QNT_AFFINE_ASYMMETRIC: Asymmetric quantification. fl int8_t RKNN_TENSOR_QNT_DFP: quantizationparameter
+zp int32_t RKNN_TENSOR_QNT_AFFINE_ASYMMETRICquantization parameter. scale float RKNN_TENSOR_QNT_AFFINE_ASYMMETRICquantization parameter. stride uint32_t The number of pixels that actually store one line of
+image data, which is equal to the number of validdata pixels in one row + the number of invalid pixelsthat are filled in for the hardware to quickly jumptothe next line. size_with_stride uint32_t The actual byte size of image data (including the bytesize of filled invalid pixels). pass_through uint8_t 0: means unconverted data. 1: means converteddata, Note: Conversion includes normalization andquantization. 4.4.3.4 rknn_perf_detail
+The structure rknn_perf_detail represents the performance details of the model. The definitionof
+the structure is shown in the following table:
+Field Type Meaning
+perf_data char* The performance details contain the running timeof
+each layer of the network stored in string type. data_len uint64_t The data length of string type of perf_data
+34
+www.rock-chips.com
+4.4.3.5 rknn_perf_run
+The structure rknn_perf_run represents the total inference time of the model. The definitionof
+the structure is shown in the following table:
+Field Type Meaning
+run_duration int64_t The total inference time of the network (not
+including setting input/output) in microseconds. 4.4.3.6 rknn_mem_size
+The structure rknn_mem_size represents the memory allocation when the model is initialized. The definition of the structure is shown in the following table:
+Field Type Meaning
+total_weight_size uint32_t The memory size allocated for weights of thenetwork. total_internal_size uint32_t The memory size allocated for internal tensor of thenetwork. 4.4.3.7 rknn_tensor_mem
+The structure rknn_tensor_mem represents the tensor memory information. The definitionof
+the structure is shown in the following table:
+Field Type Meaning
+virt_addr void* The virtual address of tensor. phys_addr uint64_t The physical address of tensor. fd int32_t The file descriptor of tensor. offset int32_t The offset of fd and virtual address. size uint32_t The actual size of tensor. flags uint32_t rknn_tensor_mem has the following type of flags:
+RKNN_TENSOR_MEMORY_FALGS_ALLOC_INSIDE: indicates that the rknn_tensor_memstructure is created at runtime. The user does not need to pay attentiontotheflags. priv_data void* private data.
+35
+www.rock-chips.com
+4.4.3.8 rknn_input
+The structure rknn_input represents a data input to the model, used as a parameter totherknn_inputs_set function. The following table shows the definition:
+Field Type Meaning
+index uint32_t The index position of this input. buf void* The pointer of the input data buffer. size uint32_t The memory size of the input data buffer. pass_through uint8_t When set to 1, buf will be directly set to the input
+node of the model without any pre-processing. type rknn_tensor_type The type of input data. fmt rknn_tensor_format The format of input data. 4.4.3.9 rknn_output
+The structure rknn_output represents a data output of the model, used as a parameter totherknn_outputs_get function. This structure will be assigned with data after calling rknn_outputs_get. The following table shows the definition of each member of rknn_output:
+Field Type Meaning
+want_float uint8_t Indicates whether the output data needs tobeconverted to float type. is_prealloc uint8_t Indicates whether the buffer that stores the output
+data is pre-allocated. index uint32_t The index position of this output. buf void* The pointer pointing to the output data buffer. size uint32_t Output data buffer size in byte. 4.4.3.10 rknn_init_extend
+The structure rknn_init_extend represents the extended information when the runtimeisinitialized. It is not available currently. The definition of the structure is shown in the followingtable:
+36
+www.rock-chips.com
+Field Type Meaning
+ctx rknn_context The initialized rknn_context object. reserved uint8_t[128] The reserved data. 4.4.3.11 rknn_run_extend
+The structure rknn_run_extend represents the extended information during model inference. It isnot available currently. The definition of the structure is shown in the following table:
+Field Type Meaning
+frame_id uint64_t The index of frame of current inference. non_block int32_t 0 means blocking mode, 1 means non-blockingmode, non-blocking mode means that the rknn_runcall returns immediately. timeout_ms int32_t The timeout of inference in milliseconds. fence_fd int32_t For the non-blocking inference. (Not Available)
+4.4.3.12 rknn_output_extend
+The structure rknn_output_extend means to obtain the extended information of the output. It isnot available currently. The definition of the structure is shown in the following table:
+Field Type Meaning
+frame_id int32_t The frame index of the output result. 4.4.3.13 rknn_custom_string
+The structure rknn_custom_string represents the custom string set by the user when convertingthe RKNN model. The definition of the structure is shown in the following table:
+Field Type Meaning
+string char[] User-defined string.
+37
+www.rock-chips.com
+4.4.4 Instruction of API Input and Output
+4.4.4.1 General Input and Output of API (Without Zero Copy)
+1) rknn_inputs_set
+When calling this API, it can set up the parameter from rknn_inputs_set, that is, liketheexample shown on the section of 4.4.2.6, the input data type and size can be configured by the rknn_input
+structure. The detail explanation of input: The pass_through is one of the member of rknn_input
+structure. If pass_through is set as 1, then the input data will be imported and computed inside the model
+in which none of the conversion will happen. If it is 0, the input tensor will be transformed first the rknnapi based on the fmt and type from the tensor (inside the RKNN API) and imported into model. As shownon the table below, as an example, when the model has the type of int8, with the pass_through set as 1, the only available input data type of the tensor is int8. Besides, the tensor data layout should be NHWCwhen the number of input channels is 1, 3, 4. For other channel numbers, the input tensor data layout isNC1HWC2. When the pass_through is set as 0, the only supported data type for input tensor is NHWC. Table-1: The NPU supports input configuration without zero copy
+Data Type of
+Input
+pass_through Number of
+Channels
+Supported input
+layout
+Remark
+uint8_t 0 - NHWC
+float32 0 - NHWC
+int8
+1
+1,3,4 NHWC
+Only support i8model
+int8
+1 None 1,3,4
+channel
+NC1HWC2
+Only support i8model
+float16 0 - NHWC
+float16
+1
+- NC1HWC2
+Only support fp16model
+2) rknn_outputs_get
+When calling this function, it can set up want_float, which is one of the member of rknn_output
+structure, to select the input data type, layout, etc. Since the default setting will set the data typeof
+38
+www.rock-chips.com
+output layer as float32 when converting the model into rknn model via rknn-toolkit2, the queryingresult
+for non-quantified models will still be float32 type even if the want_float is set as 0. The zerocopyshould be utilized if the non float32 data result is desired. Table-2: The NPU supports input configuration without zero copy
+want_float Output data Type
+Supported output
+layout
+1 float32 NCHW0
+float32 NCHWint8 NCHWfloat16 NCHW4.4.4.2 Input and Output with Zero Copy of API
+Two functions need to use for this purpose:
+rknn_create_mem, rknn_set_io_mem
+The specification of input data (involving the size, data type, layout, etc.) should be configuredaccording to the actual data that need to be allocated by the zero copy memory. Explanation of input: pass_through is the member of rknn_tensor_attr structure. It is the same as theone mentioned in the rknn_input. Table-3: The NPU supports input configuration with zero copy
+Data Type of
+Input
+pass_through Number of
+Channels
+Supported input
+layout
+Remark
+uint8_t 0 - NHWC
+float32 0 - NHWC
+int8
+1
+1,3,4 NHWC
+Only support i8model
+int8
+1 None 1,3,4
+channel
+NC1HWC2
+Only support i8model
+float16 0 - NHWC
+float16
+1
+- NC1HWC2
+Only support fp16model
+39
+www.rock-chips.com
+For the output data, when not in the mode of NATIVE_LAYOUT, it is suggested consideringtheactual data inside the zero copy memory to configure the corresponding size, data type and data layout
+for output. When in the NATIVE_LAYOUT mode, it is recommended utilizing the default configurationthat is from the one queried from the RKNN_QUERY_NATIVE_INPUT_ATTR. The specificationof
+output is shown below. Table-4: NPU supports output setting. (With zero copy interface)
+Output Data Type Available Output Layout
+float32 NCHW
+int8 NCHW
+int8 NC1HWC2
+float16 NCHW
+float16 NC1HWC2
+4.4.4.3 Instruction of looking up NATIVE_LAYOUT parameter
+There are two parameters listed below. RKNN_QUERY_NATIVE_INPUT_ATTR
+RKNN_QUERY_NATIVE_OUTPUT_ATTR
+Those two can query the attribute of input and output tensor. In most of the time, this native attributehas the best performance. When querying this attribute, the rknn_tensor_format might be the NC1HWC2, which is a special memory arrangement. The memory address from low to high is C2->W->H->C1->N, among which the C2 has the fastest changing rate and N is the slowest one. The value of C2 mayvarydepending on the platform and data type. The specification of C2 is shown in the table below. Table-5: The value of C2 under different platform
+int8(quantization) float16(non-quantization)
+RK356X 8 4
+RK3588 16 8
+For example, assuming on the RK356X, there is a output tensor whose memory layout is 1x1x1x32(NHWC) from the orignal model. Then, the original model is converted to RKNNmodel. Whenquerying the output tensor from this new model with the native attribute, the memory layout of this
+40
+www.rock-chips.com
+output tensor will be converted to 1x4x1x1x8 (NC1HWC2), where C1 = [32/8] =4, C2 = 8, the [] denotesthe rounding up to cloest integer. When invoking the rknn_query, this API will return the configuration with the best performancetothe rknn_tensor_attr. If the user has got different input or output data configuration differedfromwhat they desire, they can customize the configuration of the query part. However, it must beconsistent with the table 3 and table 4 shown above. For example, if the queried data type is uint8and users want to configure this output data type as float32, users should multiply the sizeinrknn_tensor_attr structure by 4 since the float32 is 4 bytes long. Also, the data typeinrknn_tensor_attr should be changed to RKNN_TENSOR_FLOAT32. With regrading to queryinginthe native mode using the above two parameters, users should use the zero copy interface to fetchtheresult of input and output. 4.4.5 RKNN Error Code
+The return code of the RKNN API function is defined as shown in the following table.
+41
+www.rock-chips.com
+Error Code Message
+RKNN_SUCC（0） Execution is successful
+RKNN_ERR_FAIL (-1) Execution error
+RKNN_ERR_TIMEOUT (-2) Execution timeout
+RKNN_ERR_DEVICE_UNAVAILABLE (-3) NPU device is unavailable
+RKNN_ERR_MALLOC_FAIL (-4) Memory allocation is failed
+RKNN_ERR_PARAM_INVALID (-5) Parameter error
+RKNN_ERR_MODEL_INVALID (-6) RKNN model is invalid
+RKNN_ERR_CTX_INVALID (-7) rknn_context is invalid
+RKNN_ERR_INPUT_INVALID (-8) rknn_input object is invalid
+RKNN_ERR_OUTPUT_INVALID (-9) rknn_output object is invalidRKNN_ERR_DEVICE_UNMATCH (-10) Version does not match
+RKNN_ERR_INCOMPATILE_OPTIMIZATION_LEVEL_VERSION (-12) This RKNN model use
+optimization level mode, but not
+compatible with current driver. RKNN_ERR_TARGET_PLATFORM_UNMATCH (-13) This RKNN model doesn’t
+compatible with current platform. 4.5 NPU SDK Instruction
+4.5.1 RKNN Error Code
+The NPU SDK for both RK356X and RK3588 contains examples for the API usage, includingtheNPU library, server programs, doc. The server program is called rknn_server, which resides onthedevelopment board. With the communication set up by the server program, The developer should connect
+the development board with the PC via the USB and use the rknn-toolkit2 API with python interfacetorun the model. The detail instruction of how to install is written in rknn_server_proxy.md. The overall structure of the content is shown below,
+42
+www.rock-chips.com ├── doc
+├── examples # Example Program
+│ ├── 3rdparty
+│ ├── rknn_api_demo # Zero Copy API Demo
+│ ├── rknn_mobilenet_demo
+│ ├── rknn_multiple_input_demo
+│ ├── rknn_ssd_demo
+│ └── rknn_yolov5_demo
+├── README.md
+├── rknn_server_proxy.md # The instruction of server program(used for
+│ inference with board)
+└── runtime
+├── RK356X # RK356X library and content of server program│ on the board side
+│ ├── Android
+│ │ ├── librknn_api
+│ │ └── rknn_server
+│ └── Linux
+│ ├── librknn_api
+│ └── rknn_server
+└── RK3588 # RK3588 library and content of server program│ on the board side
+├── Android
+│ ├── librknn_api
+│ └── rknn_server
+└── Linux
+├── librknn_api
+└── rknn_server
+4.5.2 Compiling and Building
+Despite offering the same API interface, there are some differences on these platforms. The tablebelow shows the difference. (Only for the API varied on those two platform)
+Table-6: API supporting condition on RK356X and RK3588
+API/ Platform RK356X RK3588
+rknn_dup_context √ ×
+rknn_set_core_mask × √
+43
+www.rock-chips.com 4.6 Debugging
+4.6.1 Log level
+The library for NPU will rely on the environment variable on the board to generate a set of
+debugging logs or files that are suitable for developers to debug the program. The command for settingup debugging log is shown below, export RKNN_LOG_LEVEL=<level_number>
+, where <level_number> represents the category of debugging log, ranging from 0 to 5. The detail of
+each type of log is listed below. Table-7: The output log of each category
+Level Output Log
+0 Printing error message only
+1 Printing both error and warning log
+2 Printing both hints and log in level 1
+3 Printing both debugging log and log in level 2
+4 Printing both log in level 3 and information in each layer, influencingtheperformance of rknn_run when enabling this log
+5 Printing both message in level 4 and data in intermediate layer, influencingtheperformance of rknn_run when enabling this log
+As an example, for querying the performance of each layer, the developer can set the followingenvironment variable. export RKNN_LOG_LEVEL=4
+When completing the debugging, to reset the debugging log to level 0, using the followingcommands,unset RKNN_LOG_LEVEL
+44
+www.rock-chips.com
+4.6.2 Profiling
+4.5.2.1 Checking the environment on the development board
+Generally, the frequency of each hardware unit on the development board is not fixed, resultinginthe fluctuation and uncertainty on the performance of module running on the board. To avoid this, thedeveloper should fix the frequency of each hardware unit before testing modules for assessment. 1. Fix Frequency for CPU
+(1) Query the frequency of CPU
+cat /sys/devices/system/cpu/cpu0/cpufreq/scaling_cur_freq
+or
+cat /sys/kernel/debug/clk/clk_summary | grep arm
+(2) Fix the frequency of CPU
+# Query avilable frequency of CPU
+cat /sys/devices/system/cpu/cpufreq/policy0/scaling_available_frequencies
+408000 600000 816000 1008000 1200000 1416000 1608000 1704000
+# Fix the CPU frequency, e.g., fix at 1.7GHz
+echo userspace > /sys/devices/system/cpu/cpufreq/policy0/scaling_governor
+echo 1704000 > /sys/devices/system/cpu/cpufreq/policy0/scaling_setspeed
+2. DDR related commands
+(1) Query the frequency of DDR
+cat /sys/class/devfreq/dmc/cur_freq
+or
+cat /sys/kernel/debug/clk/clk_summary | grep ddr
+(2) Fix the frequency of DDR (Need extra firmware)
+# Query the avilable frequency of DDR
+cat /sys/class/devfreq/dmc/available_frequencies
+# Fix the frequency of DDR, e.g., at 1560MHz
+echo userspace > /sys/class/devfreq/dmc/governor
+echo 1560000000 > /sys/class/devfreq/dmc/userspace/set_freq
+3. NPU related commands
+45
+www.rock-chips.com
+(1) Query the frequency of NPU:
+For RK356X:
+cat /sys/kernel/debug/clk/clk_summary | grep npu
+or
+cat /sys/class/devfreq/fde40000.npu/cur_freq
+For RK3588 (Need extra firmware):
+cat /sys/kernel/debug/clk/clk_summary | grep clk_npu_dsu0
+(2) Fix the frequency of NPU：
+For RK356X:
+# Query the available frequency of NPU
+cat /sys/class/devfreq/fde40000.npu/available_frequencies
+# Fix NPU frequency，e.g., fix at 1 GHz
+echo userspace > /sys/class/devfreq/fde40000.npu/governor
+echo 1000000000 > /sys/kernel/debug/clk/clk_scmi_npu/clk_rate
+For RK3588 (Need extra firmware) :
+# Fix the NPU frequency, e.g., at 1GHz
+echo 1000000000 > /sys/kernel/debug/clk/clk_npu_dsu0/clk_rate
