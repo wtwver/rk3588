@@ -1,10 +1,19 @@
 # Question
 
-1. Given .rknn is propertary format, how ggml handles the ops and offload to npu
-2. how piper handles the ops and offload to npu
-3. how usefultransformer handles the ops and offload to npu
+AM device is using custom driver in tinygrad, does it need renderer?
+-> yes, seems custom driver on running hip code
 
+Given .rknn is propertary format, how ggml handles the ops and offload to npu
+-> seems only matmul
 
+how piper handles the ops and offload to npu
+-> convert decoder to .rknn
+
+how usefultransformer handles the ops and offload to npu
+-> only mat mul api
+
+reverse engineering found conv / max /min/ avg
+->
 
 
 
